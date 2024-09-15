@@ -13,6 +13,7 @@ import {
   getAllUsersRepo,
   updateUserProfileRepo,
   updateUserRoleAndProfileRepo,
+  findByEmail
 } from "../models/user.repository.js";
 import crypto from "crypto";
 
@@ -20,6 +21,10 @@ export const createNewUser = async (req, res, next) => {
   const { name, email, password } = req.body;
   try {
     const newUser = await createNewUserRepo(req.body);
+    const existingUser = await findByEmail(email);
+    if (existingUser) {
+      return res.status(400).send("User already registered.");
+    }
     await sendToken(newUser, res, 200);
 
     // Implement sendWelcomeEmail function to send welcome message
@@ -57,7 +62,7 @@ export const logoutUser = async (req, res, next) => {
     .status(200)
     .cookie("token", null, {
       expires: new Date(Date.now()),
-      httpOnly: true,
+      httpOnly: true
     })
     .json({ success: true, msg: "logout successful" });
 };
@@ -111,7 +116,7 @@ export const updateUserProfile = async (req, res, next) => {
   try {
     const updatedUserDetails = await updateUserProfileRepo(req.user._id, {
       name,
-      email,
+      email
     });
     res.status(201).json({ success: true, updatedUserDetails });
   } catch (error) {

@@ -3,7 +3,18 @@ import mongoose from "mongoose";
 import { ObjectId } from "mongoose";
 
 export const createNewUserRepo = async (user) => {
-  return await new UserModel(user).save();
+  try {
+    return await new UserModel(user).save();
+  } catch (err) {
+    throw new Error("email already registered");
+  }
+};
+export const findByEmail = async (email) => {
+  try {
+    const result = await UserModel.findOne({ email });
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 export const findUserRepo = async (factor, withPassword = false) => {
@@ -14,7 +25,7 @@ export const findUserRepo = async (factor, withPassword = false) => {
 export const findUserForPasswordResetRepo = async (hashtoken) => {
   return await UserModel.findOne({
     resetPasswordToken: hashtoken,
-    resetPasswordExpire: { $gt: Date.now() },
+    resetPasswordExpire: { $gt: Date.now() }
   });
 };
 
@@ -22,7 +33,7 @@ export const updateUserProfileRepo = async (_id, data) => {
   return await UserModel.findOneAndUpdate(_id, data, {
     new: true,
     runValidators: true,
-    useFindAndModify: false,
+    useFindAndModify: false
   });
 };
 

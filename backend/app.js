@@ -1,10 +1,11 @@
+import "./env.js";
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import productRoutes from "./src/product/routes/product.routes.js";
 import {
   errorHandlerMiddleware,
-  handleUncaughtError,
+  handleUncaughtError
 } from "./middlewares/errorHandlerMiddleware.js";
 import userRoutes from "./src/user/routes/user.routes.js";
 import cookieParser from "cookie-parser";
