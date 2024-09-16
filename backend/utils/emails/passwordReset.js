@@ -5,12 +5,12 @@ export const sendPasswordResetEmail = async (user, resetPasswordURL) => {
     service: process.env.SMPT_SERVICE,
     auth: {
       user: process.env.STORFLEET_SMPT_MAIL,
-      pass: process.env.STORFLEET_SMPT_MAIL_PASSWORD,
-    },
+      pass: process.env.STORFLEET_SMPT_MAIL_PASSWORD
+    }
   });
 
   const mailOptions = {
-    from: process.env.STORFLEET_MAIL,
+    from: process.env.STORFLEET_SMPT_MAIL,
     to: user.email,
     subject: "Password Reset",
     html: `
@@ -76,7 +76,7 @@ export const sendPasswordResetEmail = async (user, resetPasswordURL) => {
             </div>
         </body>
         </html>
-    `,
+    `
   };
 
   await transporter.sendMail(mailOptions);

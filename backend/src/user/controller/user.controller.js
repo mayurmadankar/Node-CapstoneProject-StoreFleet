@@ -12,8 +12,7 @@ import {
   findUserRepo,
   getAllUsersRepo,
   updateUserProfileRepo,
-  updateUserRoleAndProfileRepo,
-  findByEmail
+  updateUserRoleAndProfileRepo
 } from "../models/user.repository.js";
 import crypto from "crypto";
 
@@ -21,10 +20,6 @@ export const createNewUser = async (req, res, next) => {
   const { name, email, password } = req.body;
   try {
     const newUser = await createNewUserRepo(req.body);
-    const existingUser = await findByEmail(email);
-    if (existingUser) {
-      return res.status(400).send("User already registered.");
-    }
     await sendToken(newUser, res, 200);
 
     // Implement sendWelcomeEmail function to send welcome message
@@ -47,9 +42,11 @@ export const userLogin = async (req, res, next) => {
         new ErrorHandler(401, "user not found! register yourself now!!")
       );
     }
+    // console.log(password);
     const passwordMatch = await user.comparePassword(password);
+    // console.log(passwordMatch);
     if (!passwordMatch) {
-      return next(new ErrorHandler(401, "Invalid email or passswor!"));
+      return next(new ErrorHandler(401, "Invalid email or passsword!"));
     }
     await sendToken(user, res, 200);
   } catch (error) {
@@ -69,10 +66,72 @@ export const logoutUser = async (req, res, next) => {
 
 export const forgetPassword = async (req, res, next) => {
   // Implement feature for forget password
+  try {
+    const user = await findUserRepo({ email: req.body.email });
+    if (!user) {
+      return next(new ErrorHandler(404, "User not found!"));
+    }
+    const resetToken = await user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+    console.log("reset-token", resetToken);
+    const resetUrl = `http://localhost:3000/api/storefleet/user/password/reset/${resetToken}`;
+    await sendPasswordResetEmail(user, resetUrl);
+    res
+      .status(200)
+      .json({ success: true, msg: "password reset link sent to your email" });
+  } catch (err) {
+    console.log(err);
+    return next(new ErrorHandler(400, err));
+  }
 };
 
 export const resetUserPassword = async (req, res, next) => {
-  // Implement feature for reset password
+  try {
+    const { token } = req.params;
+
+    // Hash the received token to match the stored token
+    const resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex")
+      .toString();
+
+    // Find the user with the resetPasswordToken
+    const user = await findUserForPasswordResetRepo(
+      { resetPasswordToken: resetPasswordToken },
+      true
+    );
+
+    if (!user) {
+      return next(new ErrorHandler(400, "Invalid or expired reset token"));
+    }
+
+    // Check if token has expired
+    if (user.resetPasswordExpire < Date.now()) {
+      return next(new ErrorHandler(400, "Token has expired"));
+    }
+
+    // Check if passwords match
+    if (req.body.password !== req.body.confirmPassword) {
+      return next(new ErrorHandler(400, "Passwords do not match"));
+    }
+
+    // Update user password and reset token fields
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    // Save the updated user details
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password has been reset successfully"
+    });
+  } catch (err) {
+    console.error(err);
+    return next(new ErrorHandler(500, "Internal Server Error"));
+  }
 };
 
 export const getUserDetails = async (req, res, next) => {
@@ -167,4 +226,24 @@ export const deleteUser = async (req, res, next) => {
 
 export const updateUserProfileAndRole = async (req, res, next) => {
   // Write your code here for updating the roles of other users by admin
+  try {
+    const { name, email, role } = req.body;
+    const { id } = req.params;
+    const _id = new mongoose.Types.ObjectId(id);
+    const updatedUserDetails = await updateUserRoleAndProfileRepo(_id, {
+      name,
+      email,
+      role
+    });
+    res
+      .status(200)
+      .json({
+        success: true,
+        msg: "role updated successfully",
+        updatedUserDetails
+      });
+  } catch (error) {
+    console.log(error);
+    return next(new ErrorHandler(400, error));
+  }
 };

@@ -5,18 +5,11 @@ import { ObjectId } from "mongoose";
 export const createNewUserRepo = async (user) => {
   try {
     return await new UserModel(user).save();
-  } catch (err) {
-    throw new Error("email already registered");
+  } catch (e) {
+    if (e.code == 11000) throw new Error("email already registered");
+    throw e;
   }
 };
-export const findByEmail = async (email) => {
-  try {
-    const result = await UserModel.findOne({ email });
-  } catch (err) {
-    console.log(err);
-  }
-};
-
 export const findUserRepo = async (factor, withPassword = false) => {
   if (withPassword) return await UserModel.findOne(factor).select("+password");
   else return await UserModel.findOne(factor);
@@ -24,11 +17,10 @@ export const findUserRepo = async (factor, withPassword = false) => {
 
 export const findUserForPasswordResetRepo = async (hashtoken) => {
   return await UserModel.findOne({
-    resetPasswordToken: hashtoken,
+    resetPasswordToken: hashtoken.resetPasswordToken,
     resetPasswordExpire: { $gt: Date.now() }
   });
 };
-
 export const updateUserProfileRepo = async (_id, data) => {
   return await UserModel.findOneAndUpdate(_id, data, {
     new: true,
@@ -47,4 +39,17 @@ export const deleteUserRepo = async (_id) => {
 
 export const updateUserRoleAndProfileRepo = async (_id, data) => {
   // Write your code here for updating the roles of other users by admin
+  try {
+    return await UserModel.findOneAndUpdate(
+      _id,
+      { role: data.role },
+      {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false
+      }
+    );
+  } catch (err) {
+    throw new Error(err);
+  }
 };

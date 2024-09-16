@@ -14,7 +14,7 @@ import {
   updatePassword,
   updateUserProfile,
   updateUserProfileAndRole,
-  userLogin,
+  userLogin
 } from "../controller/user.controller.js";
 import { auth, authByUserRole } from "../../../middlewares/auth.js";
 
@@ -25,7 +25,7 @@ router.route("/signup").post(createNewUser);
 router.route("/login").post(userLogin);
 router.route("/password/forget").post(forgetPassword);
 
-// User PUT Routes
+// User PUT Routes`
 router.route("/password/reset/:token").put(resetUserPassword);
 router.route("/password/update").put(auth, updatePassword);
 router.route("/profile/update").put(auth, updateUserProfile);
@@ -48,5 +48,8 @@ router
 // Admin PUT Routes
 // Implement route for updating role of other users
 // Write your code here
+router
+  .route("/admin/update/:id")
+  .put(auth, authByUserRole("admin"), updateUserProfileAndRole);
 
 export default router;

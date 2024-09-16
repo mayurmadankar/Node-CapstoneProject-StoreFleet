@@ -9,48 +9,53 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "user name is requires"],
     maxLength: [30, "user name can't exceed 30 characters"],
-    minLength: [2, "name should have atleast 2 charcters"],
+    minLength: [2, "name should have atleast 2 charcters"]
   },
   email: {
     type: String,
     required: [true, "user email is requires"],
     unique: true,
-    validate: [validator.isEmail, "pls enter a valid email"],
+    validate: [validator.isEmail, "pls enter a valid email"]
   },
   password: {
     type: String,
     required: [true, "Please enter your password"],
-    select: false,
+    select: false
   },
   profileImg: {
     public_id: {
       type: String,
       required: true,
-      default: "1234567890",
+      default: "1234567890"
     },
     url: {
       type: String,
       required: true,
-      default: "this is dummy avatar url",
-    },
+      default: "this is dummy avatar url"
+    }
   },
   role: {
     type: String,
     default: "user",
-    enum: ["user", "admin"],
+    enum: ["user", "admin"]
   },
   resetPasswordToken: String,
-  resetPasswordExpire: Date,
+  resetPasswordExpire: Date
 });
 
 userSchema.pre("save", async function (next) {
   //  hash user password before saving using bcrypt
+  if (!this.isModified("password")) {
+    next();
+  }
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
 });
 
 // JWT Token
 userSchema.methods.getJWTToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_Secret, {
-    expiresIn: process.env.JWT_Expire,
+    expiresIn: process.env.JWT_Expire
   });
 };
 // user password compare
