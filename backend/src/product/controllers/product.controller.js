@@ -9,7 +9,7 @@ import {
   getAllProductsRepo,
   getProductDetailsRepo,
   getTotalCountsOfProduct,
-  updateProductRepo,
+  updateProductRepo
 } from "../model/product.repository.js";
 import ProductModel from "../model/product.schema.js";
 
@@ -17,7 +17,7 @@ export const addNewProduct = async (req, res, next) => {
   try {
     const product = await addNewProductRepo({
       ...req.body,
-      createdBy: req.user._id,
+      createdBy: req.user._id
     });
     if (product) {
       res.status(201).json({ success: true, product });
@@ -30,7 +30,50 @@ export const addNewProduct = async (req, res, next) => {
 };
 
 export const getAllProducts = async (req, res, next) => {
-  // Implement the functionality for search, filter and pagination this function.
+  try {
+    const { page, keyword, price, category, rating } = req.query;
+
+    // Pagination Logic
+    const pageNumber = parseInt(page) || 1;
+    const limit = 10;
+    const skip = (pageNumber - 1) * limit;
+
+    // Build the query object
+    const query = {};
+
+    // Search by keyword
+    if (keyword) {
+      query.name = { $regex: keyword, $options: "i" }; // ignoring case
+    }
+
+    // Filter by category
+    if (category) {
+      query.category = category;
+    }
+
+    // Filter by price
+    if (price) {
+      query.price = { $gte: price.gte, $lte: price.lte };
+    }
+
+    //Filter by rating
+    if (rating) {
+      query.rating = { $gte: rating.gte, $lte: rating.lte };
+    }
+
+    const products = await getAllProductsRepo(query, skip, limit);
+    const totalProducts = await getTotalCountsOfProduct(query);
+
+    res.status(200).json({
+      success: true,
+      products,
+      totalProducts,
+      currentPage: pageNumber,
+      totalPages: Math.ceil(totalProducts / limit) //used for pagination logic (2 of 4 pg)
+    });
+  } catch (error) {
+    return next(new ErrorHandler(400, error));
+  }
 };
 
 export const updateProduct = async (req, res, next) => {
@@ -82,7 +125,7 @@ export const rateProduct = async (req, res, next) => {
       user,
       name,
       rating: Number(rating),
-      comment,
+      comment
     };
     if (!rating) {
       return next(new ErrorHandler(400, "rating can't be empty"));
@@ -159,7 +202,7 @@ export const deleteReview = async (req, res, next) => {
       success: true,
       msg: "review deleted successfully",
       deletedReview: reviewToBeDeleted,
-      product,
+      product
     });
   } catch (error) {
     return next(new ErrorHandler(500, error));
